@@ -98,6 +98,40 @@ curl -X POST "http://localhost:8000/api/dataset/export?fix=true"
 
 If you prefer a programmatic call, check `backend/app/routers/dataset_exporter.py`.
 
+## Examples
+
+Below are quick curl examples for common operations (assumes backend running at http://localhost:8000):
+
+- Health check
+
+```powershell
+curl http://localhost:8000/
+```
+
+- Camera upload (JSON keypoints payload)
+
+```powershell
+curl -X POST http://localhost:8000/upload/camera \
+	-H "Content-Type: application/json" \
+	-d @sample_upload.json
+```
+
+Where `sample_upload.json` is a JSON file with fields required by the upload endpoint (e.g., `label`, `frames`, `user`, `session_id`, and frame keypoints array). See `camera_upload_test.html` for an example payload.
+
+- Export dataset (with auto-fix)
+
+```powershell
+curl -X POST "http://localhost:8000/api/dataset/export?fix=true"
+```
+
+- Check exported files (on server)
+
+```powershell
+ls dataset\processed\memmap
+cat dataset\processed\memmap\dataset_meta.json
+```
+
+
 ## Deployment notes
 
 - Production deployment should run the backend app behind a reverse proxy (nginx) and use a process manager (systemd/docker-compose/kubernetes).
