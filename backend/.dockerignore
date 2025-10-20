@@ -1,0 +1,41 @@
+# Ignore virtualenvs and large data
+env/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.npz
+*.mp4
+*.mov
+*.avi
+*.zip
+*.tar.gz
+*.tgz
+dataset/
+raw_videos/
+features/
+models/
+runs/
+.git/
+*.log
+.DS_Store
+.idea/
+.vscode/
+/tests/
+
+# Python build/dist
+build/
+dist/
+*.egg-info/
+
+# Node
+node_modules/
+
+# Ignore dataset artifacts just in case
+*.npz
+*.npy
+
+# Docker-related
+Dockerfile
+docker-compose.override.yml

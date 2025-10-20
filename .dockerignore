@@ -1,0 +1,32 @@
+# Ignore Python virtual environment
+env/
+
+# Ignore dataset and large artifacts
+dataset/
+dataset/**
+raw_videos/
+raw_videos/**
+
+# Ignore Git metadata and local editor files
+.git
+.git/**
+.vscode
+.idea
+
+# Ignore Python cache and compiled files
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Ignore model checkpoints and logs
+runs/
+models/
+*.pt
+*.pth
+
+# Node modules if any
+node_modules/
+
+# Dockerfile build artifacts
+.dockerignore
