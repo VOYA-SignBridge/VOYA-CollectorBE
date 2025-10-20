@@ -1,0 +1,12 @@
+﻿# ignore datasets and large artifacts
+dataset/
+dataset/*
+env/
+venv/
+.venv/
+.env
+models/
+runs/
+backups/
+*.mp4
+*.npz

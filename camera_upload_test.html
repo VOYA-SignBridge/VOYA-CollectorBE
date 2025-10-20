@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Upload Test - VOYA Motion Capture</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        input[type="text"]:focus, input[type="number"]:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        
+        .btn-secondary {
+            background-color: #008CBA;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #007B9A;
+        }
+        
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #da190b;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease;
+        }
+        
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .capturing {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 VOYA Motion Capture - Camera Upload Test</h1>
+        
+        <div class="form-group">
+            <label for="userName">User Name:</label>
+            <input type="text" id="userName" placeholder="Enter your name" value="test_user">
+        </div>
+        
+        <div class="form-group">
+            <label for="gestureLabel">Gesture Label:</label>
+            <input type="text" id="gestureLabel" placeholder="e.g., hello, goodbye, thank_you" value="hello">
+        </div>
+        
+        <div class="form-group">
+            <label for="captureFrames">Number of Frames to Simulate:</label>
+            <input type="number" id="captureFrames" min="1" max="300" value="60">
+        </div>
+        
+        <div class="button-group">
+            <button id="simulateBtn" class="btn-primary">🎥 Simulate Capture & Upload</button>
+            <button id="quickTestBtn" class="btn-secondary">⚡ Quick Test (10 frames)</button>
+            <button id="clearBtn" class="btn-danger">🗑️ Clear Log</button>
+        </div>
+        
+        <div id="status" class="status hidden"></div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div id="frameCount" class="stat-value">0</div>
+                <div class="stat-label">Frames</div>
+            </div>
+            <div class="stat-card">
+                <div id="uploadTime" class="stat-value">0s</div>
+                <div class="stat-label">Upload Time</div>
+            </div>
+            <div class="stat-card">
+                <div id="fileSize" class="stat-value">0 KB</div>
+                <div class="stat-label">Payload Size</div>
+            </div>
+            <div class="stat-card">
+                <div id="status-indicator" class="stat-value">⏸️</div>
+                <div class="stat-label">Status</div>
+            </div>
+        </div>
+        
+        <div class="progress-bar hidden" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        // DOM elements
+        const userNameInput = document.getElementById('userName');
+        const gestureLabelInput = document.getElementById('gestureLabel');
+        const captureFramesInput = document.getElementById('captureFrames');
+        const simulateBtn = document.getElementById('simulateBtn');
+        const quickTestBtn = document.getElementById('quickTestBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const statusDiv = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        
+        // Stats elements
+        const frameCountEl = document.getElementById('frameCount');
+        const uploadTimeEl = document.getElementById('uploadTime');
+        const fileSizeEl = document.getElementById('fileSize');
+        const statusIndicator = document.getElementById('status-indicator');
+        
+        // Configuration
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        // Utility functions
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        function showStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.classList.remove('hidden');
+        }
+        
+        function hideStatus() {
+            statusDiv.classList.add('hidden');
+        }
+        
+        function updateProgress(percent) {
+            if (percent === 0) {
+                progressBar.classList.add('hidden');
+            } else {
+                progressBar.classList.remove('hidden');
+                progressFill.style.width = `${percent}%`;
+            }
+        }
+        
+        function updateStats(frameCount, uploadTime, fileSize, status) {
+            frameCountEl.textContent = frameCount || '0';
+            uploadTimeEl.textContent = uploadTime ? `${uploadTime}s` : '0s';
+            fileSizeEl.textContent = fileSize ? `${fileSize} KB` : '0 KB';
+            statusIndicator.textContent = status || '⏸️';
+        }
+        
+        // Generate realistic MediaPipe landmarks
+        function generateMediaPipeFrame(frameIndex) {
+            const timestamp = frameIndex * 33; // ~30 FPS
+            
+            // Pose landmarks (25 points với visibility) - UPPER BODY ONLY
+            const pose = [];
+            for (let i = 0; i < 25; i++) {  // Chỉ lấy 25 điểm thay vì 33
+                pose.push({
+                    x: 0.5 + Math.sin(frameIndex * 0.1 + i * 0.1) * 0.1,
+                    y: 0.5 + Math.cos(frameIndex * 0.1 + i * 0.1) * 0.1,
+                    z: 0.1 + Math.sin(frameIndex * 0.05) * 0.05,
+                    visibility: 0.8 + Math.random() * 0.2
+                });
+            }
+            
+            // BỎ FACE LANDMARKS - không tạo face landmarks nữa
+            
+            // Hand landmarks (21 points each)
+            const leftHand = [];
+            const rightHand = [];
+            for (let i = 0; i < 21; i++) {
+                leftHand.push({
+                    x: 0.3 + Math.sin(frameIndex * 0.2 + i * 0.2) * 0.1,
+                    y: 0.6 + Math.cos(frameIndex * 0.2 + i * 0.2) * 0.1,
+                    z: 0.2 + Math.sin(frameIndex * 0.1) * 0.05
+                });
+                
+                rightHand.push({
+                    x: 0.7 + Math.sin(frameIndex * 0.2 + i * 0.2) * 0.1,
+                    y: 0.6 + Math.cos(frameIndex * 0.2 + i * 0.2) * 0.1,
+                    z: 0.2 + Math.sin(frameIndex * 0.1) * 0.05
+                });
+            }
+            
+            return {
+                timestamp: timestamp,
+                landmarks: {
+                    pose: pose,
+                    // face: REMOVED - không có face landmarks
+                    left_hand: leftHand,
+                    right_hand: rightHand
+                }
+            };
+        }
+        
+        // Simulate capture and upload
+        async function simulateCapture(frameCount) {
+            const userName = userNameInput.value.trim();
+            const gestureLabel = gestureLabelInput.value.trim();
+            
+            if (!userName || !gestureLabel) {
+                showStatus('Please enter user name and gesture label', 'error');
+                return;
+            }
+            
+            // Disable buttons
+            simulateBtn.disabled = true;
+            quickTestBtn.disabled = true;
+            statusIndicator.textContent = '🎬';
+            
+            try {
+                log('🎬 Starting capture simulation...');
+                showStatus('Generating MediaPipe landmarks...', 'info');
+                
+                // Generate frames
+                const frames = [];
+                for (let i = 0; i < frameCount; i++) {
+                    frames.push(generateMediaPipeFrame(i));
+                    
+                    // Update progress
+                    const progress = (i / frameCount) * 50; // First 50% for generation
+                    updateProgress(progress);
+                    updateStats(i + 1, null, null, '📹');
+                    
+                    // Small delay to show progress
+                    if (i % 10 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                    }
+                }
+                
+                log(`✅ Generated ${frameCount} frames with MediaPipe landmarks`);
+                
+                // Prepare payload
+                const sessionId = `web_test_${Date.now()}`;
+                const payload = {
+                    user: userName,
+                    label: gestureLabel,
+                    session_id: sessionId,
+                    frames: frames
+                };
+                
+                const payloadSize = (JSON.stringify(payload).length / 1024).toFixed(1);
+                updateStats(frameCount, null, payloadSize, '📤');
+                
+                log(`📦 Payload size: ${payloadSize} KB`);
+                showStatus('Uploading to backend...', 'info');
+                
+                // Upload
+                const startTime = Date.now();
+                updateProgress(75);
+                
+                const response = await fetch(`${API_BASE_URL}/upload/camera`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'Web-Test-Interface/1.0'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const uploadTime = ((Date.now() - startTime) / 1000).toFixed(2);
+                updateProgress(100);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.detail || 'Upload failed');
+                }
+                
+                // Success
+                log(`✅ Upload successful!`);
+                log(`   📄 Filename: ${result.filename}`);
+                log(`   🆔 Task ID: ${result.task_id}`);
+                log(`   📊 Total frames: ${result.total_frames}`);
+                log(`   ⏱️ Upload time: ${uploadTime}s`);
+                
+                updateStats(result.total_frames, uploadTime, payloadSize, '✅');
+                showStatus(`Upload successful! File: ${result.filename}`, 'success');
+                
+                // Hide progress after delay
+                setTimeout(() => updateProgress(0), 2000);
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`);
+                showStatus(`Upload failed: ${error.message}`, 'error');
+                updateStats(frameCount, null, null, '❌');
+                updateProgress(0);
+            } finally {
+                // Re-enable buttons
+                simulateBtn.disabled = false;
+                quickTestBtn.disabled = false;
+            }
+        }
+        
+        // Event listeners
+        simulateBtn.addEventListener('click', () => {
+            const frameCount = parseInt(captureFramesInput.value) || 60;
+            simulateCapture(frameCount);
+        });
+        
+        quickTestBtn.addEventListener('click', () => {
+            captureFramesInput.value = '10';
+            simulateCapture(10);
+        });
+        
+        clearBtn.addEventListener('click', () => {
+            logDiv.innerHTML = '';
+            hideStatus();
+            updateProgress(0);
+            updateStats(0, null, null, '⏸️');
+        });
+        
+        // Initial log
+        log('🚀 Camera Upload Test Interface Ready');
+        log('ℹ️ Make sure backend is running: docker-compose up -d');
+        
+        // Check backend connectivity
+        fetch(`${API_BASE_URL}/health`)
+            .then(response => response.json())
+            .then(data => {
+                log('✅ Backend connectivity confirmed');
+                showStatus('Backend is ready! You can start testing.', 'success');
+            })
+            .catch(error => {
+                log('❌ Backend not reachable');
+                showStatus('Backend not reachable. Run: docker-compose up -d', 'error');
+            });
+    </script>
+</body>
+</html>
