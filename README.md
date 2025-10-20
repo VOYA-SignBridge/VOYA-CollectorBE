@@ -131,9 +131,3 @@ If you prefer a programmatic call, check `backend/app/routers/dataset_exporter.p
 
 - Open PRs against `main` branch. For CI, add tests to the `tests/` folder and update `requirements.txt`.
 
----
-
-If you'd like, I can:
-- add a GitHub Actions workflow for CI that runs lint + tests, or
-- add a small Kubernetes manifest for deployment, or
-- pin exact dependency versions in `requirements.txt`.
