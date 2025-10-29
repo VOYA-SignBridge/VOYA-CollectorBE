@@ -60,7 +60,7 @@ async def upload_camera(payload: dict = Body(...)):
     # Convert frames (list of {timestamp, landmarks}) into numpy array
     # We expect landmarks arrays per frame; stack into (T, N) array
     try:
-        # helper: convert a MediaPipe-like dict into a flat numeric vector
+        # helper: convert a MediaPipe-like dict into a flat numeric vector (hands only)
         def flatten_landmarks(ld):
             # If already a list/array of numbers, return as-is
             if ld is None:
@@ -68,28 +68,26 @@ async def upload_camera(payload: dict = Body(...)):
             if isinstance(ld, (list, tuple, np.ndarray)):
                 return np.asarray(ld)
 
-            # If dict (MediaPipe style) with keys like 'pose','face','left_hand','right_hand'
+            # If dict (MediaPipe style) with keys for hands only
             if isinstance(ld, dict):
                 parts = []
-                # order matters to keep consistent vector size
-                for key in ("pose", "face", "left_hand", "right_hand"):
+                # Only process hands (left_hand, right_hand) - no pose, no face
+                for key in ("left_hand", "right_hand"):
                     elems = ld.get(key, [])
-                    # each elem is expected to be dict with x,y,z and optionally visibility
+                    # each elem is expected to be dict with x,y,z (no visibility for hands)
                     for p in elems:
                         if p is None:
-                            # missing point -> pad zeros
-                            parts.extend([0.0, 0.0, 0.0, 0.0])
+                            # missing point -> pad zeros (only x,y,z for hands)
+                            parts.extend([0.0, 0.0, 0.0])
                             continue
                         x = p.get("x") if isinstance(p, dict) else None
                         y = p.get("y") if isinstance(p, dict) else None
                         z = p.get("z") if isinstance(p, dict) else None
-                        v = p.get("visibility") if isinstance(p, dict) else 1.0
-                        # replace None with 0.0
+                        # Only x,y,z for hands (no visibility)
                         parts.extend([
                             float(x) if x is not None else 0.0,
                             float(y) if y is not None else 0.0,
                             float(z) if z is not None else 0.0,
-                            float(v) if v is not None else 0.0,
                         ])
                 return np.array(parts, dtype="float32")
 

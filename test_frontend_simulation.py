@@ -12,7 +12,7 @@ BASE_URL = "http://localhost:8000"
 def simulate_frontend_capture_session():
     """
     Mô phỏng chính xác một session capture từ React frontend
-    với MediaPipe Holistic landmarks
+    với MediaPipe Hands landmarks (chỉ hands, không có pose/face)
     """
     print("🎬 SIMULATING REACT FRONTEND CAPTURE SESSION")
     print("=" * 60)
@@ -26,7 +26,7 @@ def simulate_frontend_capture_session():
     print(f"🏷️ Label: {gesture_label}")
     print(f"🆔 Session: {session_id}")
     
-    # Tạo frames giống như MediaPipe Holistic output
+    # Tạo frames giống như MediaPipe Hands output (chỉ hands)
     frames = []
     capture_duration_ms = 3000  # 3 seconds
     fps = 30
@@ -38,24 +38,19 @@ def simulate_frontend_capture_session():
     for frame_idx in range(total_frames):
         timestamp = frame_idx * (1000 / fps)  # milliseconds
         
-        # MediaPipe Holistic results format - chỉ pose upper body + hands
+        # MediaPipe Hands results format - chỉ hands landmarks
         landmarks = {
-            "pose": [],
-            # "face": [],  # REMOVED - không lấy face
+            # "pose": [], # REMOVED - không lấy pose nữa
+            # "face": [], # REMOVED - không lấy face nữa  
             "left_hand": [],
             "right_hand": []
         }
         
-        # Pose landmarks (25 points với visibility) - UPPER BODY ONLY
-        for i in range(25):  # Chỉ lấy 25 điểm thay vì 33
-            landmarks["pose"].append({
-                "x": 0.5 + (i / 100.0) * 0.1,  # Normalized coordinates [0-1]
-                "y": 0.5 + (frame_idx / 100.0) * 0.1,
-                "z": -0.1 + (i / 200.0) * 0.05,
-                "visibility": 0.9 if i < 20 else 0.7  # Some landmarks less visible
-            })
+        # Pose landmarks - REMOVED (không lấy pose nữa)
+        # for i in range(25):  # Không lấy pose landmarks
+        #     landmarks["pose"].append({...})
         
-        # BỎ FACE LANDMARKS
+        # BỎ FACE LANDMARKS - không lấy face nữa
         
         # Left hand landmarks (21 points)
         for i in range(21):
@@ -169,10 +164,10 @@ def test_multiple_sessions():
         for frame_idx in range(total_frames):
             timestamp = frame_idx * (1000 / fps)
             
-            # Simplified landmarks for faster testing - chỉ pose upper body + hands
+            # Simplified landmarks for faster testing - chỉ hands
             landmarks = {
-                "pose": [{"x": 0.5, "y": 0.5, "z": 0.0, "visibility": 0.9} for _ in range(25)],  # 25 điểm thay vì 33
-                # "face": REMOVED - không lấy face
+                # "pose": REMOVED - không lấy pose nữa
+                # "face": REMOVED - không lấy face nữa
                 "left_hand": [{"x": 0.3, "y": 0.6, "z": 0.1} for _ in range(21)],
                 "right_hand": [{"x": 0.7, "y": 0.6, "z": 0.1} for _ in range(21)]
             }
@@ -238,8 +233,8 @@ def test_edge_cases():
         frames = []
         for i in range(test_case['frames']):
             landmarks = {
-                "pose": [{"x": 0.5, "y": 0.5, "z": 0.0, "visibility": 0.9} for _ in range(33)],
-                "face": [{"x": 0.5, "y": 0.3, "z": 0.0} for _ in range(468)],
+                # "pose": REMOVED - không lấy pose nữa  
+                # "face": REMOVED - không lấy face nữa
                 "left_hand": [{"x": 0.3, "y": 0.6, "z": 0.1} for _ in range(21)],
                 "right_hand": [{"x": 0.7, "y": 0.6, "z": 0.1} for _ in range(21)]
             }
@@ -247,8 +242,8 @@ def test_edge_cases():
             # Simulate missing landmarks (như khi user ra khỏi camera)
             if test_case.get('missing_landmarks') and i % 10 == 0:
                 landmarks = {
-                    "pose": [],
-                    # "face": [],  # REMOVED
+                    # "pose": [], # REMOVED - không lấy pose nữa
+                    # "face": [], # REMOVED - không lấy face nữa
                     "left_hand": [],
                     "right_hand": []
                 }

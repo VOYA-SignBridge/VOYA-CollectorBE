@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script để kiểm tra chi tiết phần camera upload với MediaPipe landmarks
+Test script để kiểm tra chi tiết phần camera upload với MediaPipe Hands landmarks
 """
 
 import requests
@@ -12,22 +12,14 @@ BASE_URL = "http://localhost:8000"
 
 def generate_realistic_mediapipe_data(num_frames=30):
     """
-    Tạo data MediaPipe giống thật với số lượng landmarks đúng chuẩn
+    Tạo data MediaPipe giống thật với MediaPipe Hands (chỉ hands, không có pose/face)
     """
     frames = []
     
     for i in range(num_frames):
         timestamp = i * 33  # 30 FPS = 33ms per frame
         
-        # Pose landmarks: 25 points × 4 coordinates (x, y, z, visibility) - UPPER BODY ONLY
-        pose_landmarks = []
-        for j in range(25):  # Chỉ lấy 25 điểm upper body thay vì 33 điểm full body
-            pose_landmarks.append({
-                "x": 0.5 + np.sin(i * 0.1 + j * 0.1) * 0.1,  # Dynamic movement
-                "y": 0.5 + np.cos(i * 0.1 + j * 0.1) * 0.1,
-                "z": 0.1 + np.sin(i * 0.05) * 0.05,
-                "visibility": 0.8 + np.random.random() * 0.2
-            })
+        # BỎ POSE LANDMARKS - không lấy pose nữa
         
         # BỎ FACE LANDMARKS - không lấy face nữa
         
@@ -52,7 +44,7 @@ def generate_realistic_mediapipe_data(num_frames=30):
         frame_data = {
             "timestamp": timestamp,
             "landmarks": {
-                "pose": pose_landmarks,
+                # "pose": REMOVED - không lấy pose landmarks
                 # "face": REMOVED - không lấy face landmarks
                 "left_hand": left_hand_landmarks,
                 "right_hand": right_hand_landmarks
@@ -64,27 +56,26 @@ def generate_realistic_mediapipe_data(num_frames=30):
 
 def test_camera_upload_detailed():
     """Test camera upload với data thực tế"""
-    print("📷 TESTING CAMERA UPLOAD WITH REALISTIC DATA")
+    print("📷 TESTING CAMERA UPLOAD WITH REALISTIC HANDS DATA")
     print("=" * 60)
     
-    # Generate realistic MediaPipe data
-    print("🔄 Generating MediaPipe landmarks data...")
+    # Generate realistic MediaPipe Hands data
+    print("🔄 Generating MediaPipe Hands landmarks data...")
     frames = generate_realistic_mediapipe_data(num_frames=60)  # 2 seconds at 30fps
     
     print(f"✅ Generated {len(frames)} frames")
-    print(f"   - Pose landmarks per frame: {len(frames[0]['landmarks']['pose'])} (upper body only)")
     print(f"   - Left hand landmarks per frame: {len(frames[0]['landmarks']['left_hand'])}")
     print(f"   - Right hand landmarks per frame: {len(frames[0]['landmarks']['right_hand'])}")
+    print(f"   - Pose landmarks: REMOVED (not used)")
     print(f"   - Face landmarks: REMOVED (not used)")
     
-    # Calculate expected feature dimensions
-    pose_dim = 25 * 4  # x, y, z, visibility - UPPER BODY ONLY
+    # Calculate expected feature dimensions (hands only)
     hand_dim = 21 * 3 * 2  # x, y, z for both hands
-    expected_total_dim = pose_dim + hand_dim  # NO FACE
+    expected_total_dim = hand_dim  # Only hands, no pose, no face
     
     print(f"   - Expected feature dimensions: {expected_total_dim}")
-    print(f"     • Pose (upper body): {pose_dim}")
     print(f"     • Hands: {hand_dim}")
+    print(f"     • Pose: 0 (removed)")
     print(f"     • Face: 0 (removed)")
     
     # Prepare payload

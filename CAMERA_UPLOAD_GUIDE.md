@@ -4,7 +4,7 @@
 
 Backend đã được cấu hình để hoàn toàn tương thích với React + TypeScript + MediaPipe frontend. Phần thu trực tiếp (camera upload) hoạt động với các tính năng:
 
-- ✅ **MediaPipe Holistic Integration**: Xử lý pose, face, hand landmarks
+- ✅ **MediaPipe Hands Integration**: Xử lý hand landmarks only
 - ✅ **Real-time Upload**: Async processing với Celery
 - ✅ **CORS Support**: Cho phép frontend localhost:5173 
 - ✅ **Error Handling**: Comprehensive error responses
@@ -152,7 +152,7 @@ dataset/
 - **Shape**: `(T, 226)` where T = number of frames
 - **Features per frame**: 226 values (optimized)
   - Pose Upper Body: 25 × 4 = 100 (x, y, z, visibility)
-  - Hands: 21 × 3 × 2 = 126 (x, y, z for both hands)
+  - Hands: 21 × 3 × 2 = 126 (x, y, z for both hands) - ONLY
   - Face: 0 (removed for performance)
 
 ## 🚀 Frontend Integration
@@ -176,8 +176,8 @@ function CaptureComponent() {
   
   // MediaPipe integration
   useEffect(() => {
-    const holistic = new Holistic({...});
-    holistic.onResults((results) => {
+    const hands = new Hands({...});
+    hands.onResults((results) => {
       addFrame({
         pose: results.poseLandmarks,
         face: results.faceLandmarks,

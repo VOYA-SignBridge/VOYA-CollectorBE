@@ -1,22 +1,25 @@
 /**
- * Frontend Integration Example - React + TypeScript + MediaPipe
+ * Frontend Integration Example - React + TypeScript + MediaPipe Hands
  * 
- * Ví dụ code để tích hợp với backend từ React frontend
+ * Ví dụ code để tích hợp với backend từ React frontend (chỉ sử dụng MediaPipe Hands)
  */
 
-// Types for MediaPipe landmarks
+// Note: Import these in your React project:
+// import { useState, useCallback } from 'react';
+
+// Types for MediaPipe Hands landmarks
 interface MediaPipeLandmark {
   x: number;
   y: number;
   z: number;
-  visibility?: number;
+  // visibility không có trong Hands (chỉ có trong Holistic/Pose)
 }
 
 interface MediaPipeResults {
-  pose?: MediaPipeLandmark[];      // 25 points upper body only (không phải 33)
+  // pose?: REMOVED - không sử dụng pose nữa
   left_hand?: MediaPipeLandmark[]; // 21 points
   right_hand?: MediaPipeLandmark[]; // 21 points
-  // face?: REMOVED - không lấy face landmarks nữa
+  // face?: REMOVED - không sử dụng face nữa
 }
 
 interface CaptureFrame {
@@ -69,8 +72,8 @@ class CameraUploadService {
     const frame: CaptureFrame = {
       timestamp,
       landmarks: {
-        pose: results.pose || [],
-        // face: REMOVED - không lấy face landmarks
+        // pose: REMOVED - không sử dụng pose nữa
+        // face: REMOVED - không sử dụng face nữa
         left_hand: results.left_hand || [],
         right_hand: results.right_hand || []
       }
@@ -109,7 +112,7 @@ class CameraUploadService {
     const payloadSize = JSON.stringify(payload).length;
     console.log(`📦 Payload size: ${(payloadSize / 1024).toFixed(1)} KB`);
 
-    let lastError: Error;
+    let lastError: Error | undefined;
 
     // Retry logic
     for (let attempt = 1; attempt <= MAX_UPLOAD_RETRIES; attempt++) {
@@ -159,7 +162,7 @@ class CameraUploadService {
       }
     }
 
-    throw lastError;
+    throw lastError || new Error('Upload failed after all retries');
   }
 
   /**
@@ -187,7 +190,12 @@ class CameraUploadService {
 
 /**
  * Hook để sử dụng trong React component
+ * 
+ * Example implementation - copy this into your React project with proper imports:
+ * import { useState, useCallback } from 'react';
  */
+
+/*
 function useCameraUpload() {
   const [uploadService] = useState(() => new CameraUploadService());
   const [isCapturing, setIsCapturing] = useState(false);
@@ -251,15 +259,15 @@ function useCameraUpload() {
     clearSession
   };
 }
+*/
 
-// Generate MediaPipe-like data
+// Generate MediaPipe Hands-like data (chỉ hands, không có pose/face)
 function generateFrame(frameIndex: number) {
   return {
     timestamp: frameIndex * 33,
     landmarks: {
-      // Chỉ 25 điểm pose upper body + hands
-      pose: Array(25).fill(null).map(() => ({x: 0.5, y: 0.5, z: 0.0, visibility: 0.9})),
-      // face: REMOVED - không lấy face
+      // pose: REMOVED - không sử dụng pose nữa
+      // face: REMOVED - không sử dụng face nữa
       left_hand: Array(21).fill(null).map(() => ({x: 0.3, y: 0.6, z: 0.1})),
       right_hand: Array(21).fill(null).map(() => ({x: 0.7, y: 0.6, z: 0.1}))
     }
@@ -282,5 +290,6 @@ async function uploadFrames(user: string, label: string, frames: CaptureFrame[])
   return response.json();
 }
 
-export { CameraUploadService, useCameraUpload };
+export { CameraUploadService };
+// export { useCameraUpload }; // Uncomment when using in React project
 export type { MediaPipeResults, CaptureFrame, UploadResponse };

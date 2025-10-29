@@ -48,20 +48,29 @@ def time_warp_resample(seq, factor=None, low=0.8, high=1.2):
 
 
 def mirror_sequence(seq):
+    """
+    Mirror sequence for data augmentation (hands-only format)
+    Expected format: 126 dimensions = left_hand (63) + right_hand (63)
+    Each hand: 21 landmarks × 3 coordinates (x,y,z)
+    """
     m = seq.copy()
-    # flip X for pose (first 100 entries, x every 4 starting at 0)
-    for x_idx in range(0, 100, 4):
+    
+    # Mirror X coordinates for hands (every 3rd element starting at 0)
+    # Left hand: indices 0 to 62 (step 3 for x coords)
+    for x_idx in range(0, 63, 3):
         m[:, x_idx] = -m[:, x_idx]
-    # hands
-    for x_idx in range(100, 100 + 63, 3):
+    
+    # Right hand: indices 63 to 125 (step 3 for x coords)  
+    for x_idx in range(63, 126, 3):
         m[:, x_idx] = -m[:, x_idx]
-    for x_idx in range(163, 163 + 63, 3):
-        m[:, x_idx] = -m[:, x_idx]
-    # swap hand blocks
-    left = m[:, 100:163].copy()
-    right = m[:, 163:226].copy()
-    m[:, 100:163] = right
-    m[:, 163:226] = left
+    
+    # Swap left and right hand blocks
+    left_hand = m[:, 0:63].copy()    # First 63 dims
+    right_hand = m[:, 63:126].copy() # Next 63 dims
+    
+    m[:, 0:63] = right_hand    # Put right hand in left position
+    m[:, 63:126] = left_hand   # Put left hand in right position
+    
     return m
 
 
