@@ -50,9 +50,13 @@ def time_warp(seq: np.ndarray, factor=1.2):
 def stage_b_keypoint_level(seq: np.ndarray):
     return {
         "original": seq,
-        "scaled": scale_sequence(seq, 1.1),
-        "jittered": jitter_sequence(seq, 0.02),
-        "timewarp": time_warp(seq, 1.2)
+        "scaled_up": scale_sequence(seq, 1.1),
+        "scaled_down": scale_sequence(seq, 0.9),
+        "jittered_light": jitter_sequence(seq, 0.01),
+        "jittered_heavy": jitter_sequence(seq, 0.03),
+        "timewarp_fast": time_warp(seq, 1.3),
+        "timewarp_slow": time_warp(seq, 0.8),
+        "combined": jitter_sequence(scale_sequence(seq, 1.05), 0.015)
     }
 
 # -------- Wrapper --------

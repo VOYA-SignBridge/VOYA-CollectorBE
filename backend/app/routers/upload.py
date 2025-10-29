@@ -167,12 +167,42 @@ async def upload_camera(payload: dict = Body(...)):
         print(f"[ERROR] Error processing landmarks: {e}")
         return {"success": False, "message": f"Invalid frames payload: {e}"}
 
-    metadata = {"user": user, "session_id": session_id, "frames": len(frames), "source": "camera", "dialect": dialect, "created_at": su.now_str()}
-    # Safety checks before saving
-    if not isinstance(seq, np.ndarray) or seq.dtype.kind not in ("f", "i") or seq.ndim != 2:
-        print(f"[ERROR] Sequence not numeric 2D array: type={type(seq)}, dtype={getattr(seq, 'dtype', None)}, ndim={getattr(seq, 'ndim', None)}")
-        return {"success": False, "message": "Processed sequence is not a numeric 2D array"}
-
-    path = su.save_sample(seq, class_idx, folder, metadata=metadata)
-    # Normalize to UploadResult shape: return session id as id and include saved path
-    return {"success": True, "id": session_id, "path": path, "message": "saved"}
+    # Apply augmentation to create multiple samples
+    from app.processing.augmenter import generate_augmented_sequences
+    
+    # Ensure sequence has proper shape (pad to 60 frames)
+    T, D = seq.shape
+    target_T = 60
+    if T < target_T:
+        pad = np.zeros((target_T - T, D))
+        seq_padded = np.vstack([seq, pad])
+    else:
+        seq_padded = seq[:target_T]
+    
+    # Generate augmented sequences
+    augmented_seq_list = generate_augmented_sequences(seq_padded)
+    
+    saved_paths = []
+    for i, aseq in enumerate(augmented_seq_list):
+        # Safety checks before saving
+        if not isinstance(aseq, np.ndarray) or aseq.dtype.kind not in ("f", "i") or aseq.ndim != 2:
+            print(f"[ERROR] Augmented sequence {i} not numeric 2D array: type={type(aseq)}, dtype={getattr(aseq, 'dtype', None)}, ndim={getattr(aseq, 'ndim', None)}")
+            continue
+            
+        metadata = {
+            "user": user, 
+            "session_id": session_id, 
+            "frames": target_T, 
+            "source": "camera", 
+            "dialect": dialect, 
+            "created_at": su.now_str(),
+            "augmented": True,
+            "aug_index": i,
+            "total_augs": len(augmented_seq_list)
+        }
+        
+        path = su.save_sample(aseq, class_idx, folder, metadata=metadata)
+        saved_paths.append(path)
+    
+    # Return multiple saved paths
+    return {"success": True, "id": session_id, "paths": saved_paths, "total_samples": len(saved_paths), "message": f"saved {len(saved_paths)} augmented samples"}
