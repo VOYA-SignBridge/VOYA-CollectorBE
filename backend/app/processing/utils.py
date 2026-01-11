@@ -18,6 +18,77 @@ def save_npz_feature(sequence_array, label_folder, filename, meta=None):
     np.savez_compressed(outpath, sequence=sequence_array.astype(np.float32), meta=meta or {})
     return outpath
 
+def ema_smooth_sequence(sequence_array: np.ndarray, alpha: float = 0.2) -> np.ndarray:
+    """
+    Apply exponential moving average smoothing per time step.
+    sequence_array: shape (T, D)
+    """
+    if not isinstance(sequence_array, np.ndarray) or sequence_array.ndim != 2:
+        return sequence_array
+    out = sequence_array.astype(np.float32).copy()
+    for t in range(1, out.shape[0]):
+        out[t] = alpha * out[t] + (1.0 - alpha) * out[t - 1]
+    return out
+
+
+def _hand_blocks_126(vec: np.ndarray):
+    """Split a (126,) vector into (left(21,3), right(21,3))."""
+    arr = np.asarray(vec, dtype=np.float32).reshape(2, 21, 3)
+    return arr[0].copy(), arr[1].copy()
+
+
+def mirror_and_swap_hands_126(vec: np.ndarray, *, normalized: bool = False) -> np.ndarray:
+    """Mirror a 126-dim (2*21*3) hand vector and swap hands.
+
+    - If not normalized (MediaPipe raw), x is assumed in [0,1] so mirror uses x -> 1 - x.
+    - If normalized/centered, mirror uses x -> -x.
+    """
+    v = np.asarray(vec, dtype=np.float32)
+    if v.size != 126:
+        return v
+    left, right = _hand_blocks_126(v)
+    if normalized:
+        left[:, 0] = -left[:, 0]
+        right[:, 0] = -right[:, 0]
+    else:
+        left[:, 0] = 1.0 - left[:, 0]
+        right[:, 0] = 1.0 - right[:, 0]
+
+    out = np.zeros((126,), dtype=np.float32)
+    out[:63] = right.reshape(63)
+    out[63:] = left.reshape(63)
+    return out
+
+
+def canonicalize_hands_126(vec: np.ndarray, *, normalized: bool = False, mirror_invariant: bool = True) -> np.ndarray:
+    """Make a 126-dim hand vector more invariant to left/right hand and mirroring.
+
+    Steps:
+    1) If only one hand is present (other block all zeros), always place it in the first block.
+    2) Optionally choose canonical orientation between vec and mirror+swap(vec).
+    """
+    v = np.asarray(vec, dtype=np.float32)
+    if v.size != 126:
+        return v
+
+    left = v[:63]
+    right = v[63:]
+    left_present = bool(np.any(left != 0.0))
+    right_present = bool(np.any(right != 0.0))
+
+    # One-hand canonicalization: dominant hand always in first block.
+    if right_present and not left_present:
+        v2 = np.zeros((126,), dtype=np.float32)
+        v2[:63] = right
+        return canonicalize_hands_126(v2, normalized=normalized, mirror_invariant=mirror_invariant)
+
+    if mirror_invariant:
+        m = mirror_and_swap_hands_126(v, normalized=normalized)
+        # Choose deterministic canonical form (bytewise) so vec and its mirror map identically.
+        return v if v.tobytes() <= m.tobytes() else m
+
+    return v
+
 
 def load_npz_features(base_dir: Path):
     """Load all .npz feature files under base_dir.

@@ -1,31 +1,19 @@
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, DateTime, JSON
-from sqlalchemy.sql import func
-from app.config import settings
-
-engine = create_engine(settings.database_url, pool_pre_ping=True)
-metadata = MetaData()
-
-labels = Table(
-    "labels", metadata,
-    Column("id", Integer, primary_key=True),
-    Column("class_idx", Integer, nullable=False),
-    Column("label_name", String, nullable=False),
-    Column("folder_name", String, nullable=False),
-    Column("created_at", DateTime, server_default=func.now())
-)
-
-samples = Table(
-    "samples", metadata,
-    Column("id", Integer, primary_key=True),
-    Column("label_id", Integer),
-    Column("file_path", String, nullable=False),
-    Column("user", String),
-    Column("session_id", String),
-    Column("frames", Integer),
-    Column("duration", String),
-    Column("meta", JSON),
-    Column("created_at", DateTime, server_default=func.now())
-)
-
 def init_db():
-    metadata.create_all(engine)
+    """Initialize database tables.
+
+    Note: this project primarily persists labels/samples to CSV + JSON sidecars.
+    Postgres is optional and used for mirroring sample metadata via
+    `app.storage.metadata_db`.
+
+    Historically this module used SQLAlchemy to create legacy tables named
+    `labels` and `samples`. Those schemas conflict with the current
+    `samples(sample_uid, ...)` schema used by `metadata_db`.
+
+    We now ensure the correct tables exist using `metadata_db.ensure_tables()`.
+    """
+    try:
+        from app.storage.metadata_db import ensure_tables
+        ensure_tables()
+    except Exception:
+        # Best-effort: DB is optional
+        return

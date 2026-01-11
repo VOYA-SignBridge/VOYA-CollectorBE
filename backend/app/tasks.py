@@ -2,11 +2,11 @@ from app.worker import celery_app
 from app.processing.pipeline import process_video_job
 
 @celery_app.task(bind=True)
-def enqueue_process_video(self, video_path: str, user: str, label: str, session_id: str, dialect: str = ""):
+def enqueue_process_video(self, video_path: str, user: str, label: str, session_id: str, dialect: str = "common", language: str = "vn"):
     # This wrapper calls processing.pipeline (synchronous heavy processing)
     # Use try/except to capture failure and push status
     try:
-        result = process_video_job(video_path, user, label, session_id, dialect)
+        result = process_video_job(video_path, user, label, session_id, dialect=dialect, language=language)
         return {"status": "done", "result": result}
     except Exception as e:
         # you can log here and rethrow or return failure

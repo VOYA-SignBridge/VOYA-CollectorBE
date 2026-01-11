@@ -1,4 +1,4 @@
-version: "3.9"
+# version removed (obsolete in modern Compose)
 
 services:
   backend:
@@ -9,7 +9,7 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
-      - ./dataset:/app/dataset
+      - ./dataset:/dataset
     ports:
       - "8000:8000"
     depends_on:
@@ -19,6 +19,15 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - DATABASE_URL=postgresql://signuser:signpass@postgres:5432/signdb
+      - DATASET_ROOT=/dataset
+      - RESIZE_W=480
+      - RESIZE_H=480
+      - AUG_PER_SEQ=2
+      - VIDEO_AUG_PER_SEQ=8
+      - VIDEO_COMPLETENESS=0.8
+      - SPEED_VARIANTS=1.0
+      # Disable per-class cap so video uploads can keep generating samples
+      - MAX_SAMPLES_PER_CLASS=0
 
   worker:
     build:
@@ -28,7 +37,7 @@ services:
     command: celery -A app.worker.celery_app worker --loglevel=info
     volumes:
       - ./backend:/app
-      - ./dataset:/app/dataset
+      - ./dataset:/dataset
     depends_on:
       - redis
       - postgres
@@ -36,6 +45,28 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - DATABASE_URL=postgresql://signuser:signpass@postgres:5432/signdb
+      - DATASET_ROOT=/dataset
+      - RESIZE_W=480
+      - RESIZE_H=480
+      - AUG_PER_SEQ=2
+      - VIDEO_AUG_PER_SEQ=8
+      - VIDEO_COMPLETENESS=0.8
+      - SPEED_VARIANTS=1.0
+      # Disable per-class cap so video uploads can keep generating samples
+      - MAX_SAMPLES_PER_CLASS=0
+
+  minio:
+    image: minio/minio:latest
+    container_name: sign_minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
 
   postgres:
     image: postgres:15
@@ -50,6 +81,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
 
+
   redis:
     image: redis:6.2
     container_name: sign_redis
@@ -58,3 +90,5 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:
+  dataset:
