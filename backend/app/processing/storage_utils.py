@@ -11,7 +11,10 @@ import unicodedata
 import re
 import json
 import shutil
+import tempfile
+import io
 from datetime import datetime
+from filelock import FileLock
 
 # ---- Config paths ----
 DATASET_ROOT = "dataset"
@@ -43,10 +46,40 @@ def read_csv(csv_path):
 
 def write_csv(csv_path, rows, fieldnames):
     os.makedirs(os.path.dirname(csv_path), exist_ok=True)
-    with open(csv_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
+    lock = FileLock(csv_path + ".lock")
+    with lock:
+        # write atomically via temp file then replace
+        dirn = os.path.dirname(csv_path) or "."
+        fd, tmp_path = tempfile.mkstemp(prefix="csvtmp_", dir=dirn)
+        os.close(fd)
+        try:
+            with open(tmp_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(rows)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_path, csv_path)
+        finally:
+            if os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
+
+def append_csv_row(csv_path, row, fieldnames):
+    os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+    lock = FileLock(csv_path + ".lock")
+    with lock:
+        file_exists = os.path.exists(csv_path)
+        # Atomic append via opening in a+ and ensure header if new
+        with open(csv_path, "a", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow(row)
+            f.flush()
+            os.fsync(f.fileno())
 
 # ---- Label management ----
 def register_label(label_original, notes="", dataset_version="v1"):
@@ -70,9 +103,9 @@ def register_label(label_original, notes="", dataset_version="v1"):
         "dataset_version": dataset_version,
         "notes": notes,
     }
-    rows.append(new_row)
+    # append row atomically
     fieldnames = ["class_idx","label_original","slug","folder_name","created_at","dataset_version","notes"]
-    write_csv(LABELS_CSV, rows, fieldnames)
+    append_csv_row(LABELS_CSV, new_row, fieldnames)
 
     os.makedirs(os.path.join(FEATURE_ROOT, folder_name), exist_ok=True)
     return next_idx, folder_name
@@ -85,14 +118,13 @@ def save_sample(sequence_array, class_idx, folder_name, metadata=None):
     """
     sample_uuid = uuid.uuid4().hex[:8]
     fname = f"sample_{class_idx:04d}_{sample_uuid}"
-    npz_path = os.path.join(FEATURE_ROOT, folder_name, fname + ".npz")
-    json_path = os.path.join(FEATURE_ROOT, folder_name, fname + ".json")
+    out_dir = os.path.join(FEATURE_ROOT, folder_name)
+    os.makedirs(out_dir, exist_ok=True)
+    npz_path = os.path.join(out_dir, fname + ".npz")
+    json_path = os.path.join(out_dir, fname + ".json")
 
-    # Save npz
+    # Save npz atomically (include meta inside npz too)
     import numpy as np
-    np.savez_compressed(npz_path, sequence=sequence_array.astype("float32"))
-
-    # Save metadata
     metadata = metadata or {}
     metadata.update({
         "class_idx": class_idx,
@@ -100,8 +132,36 @@ def save_sample(sequence_array, class_idx, folder_name, metadata=None):
         "sample_uuid": sample_uuid,
         "created_at": now_str(),
     })
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(metadata, f, ensure_ascii=False, indent=2)
+    fd_npz, tmp_npz = tempfile.mkstemp(prefix="npztmp_", suffix=".npz", dir=out_dir)
+    os.close(fd_npz)
+    try:
+        with open(tmp_npz, "wb") as f:
+            np.savez_compressed(f, sequence=sequence_array.astype("float32"), meta=metadata)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_npz, npz_path)
+    finally:
+        if os.path.exists(tmp_npz):
+            try:
+                os.remove(tmp_npz)
+            except Exception:
+                pass
+
+    # Save metadata sidecar atomically
+    fd_json, tmp_json = tempfile.mkstemp(prefix="jsontmp_", suffix=".json", dir=out_dir)
+    os.close(fd_json)
+    try:
+        with open(tmp_json, "w", encoding="utf-8") as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_json, json_path)
+    finally:
+        if os.path.exists(tmp_json):
+            try:
+                os.remove(tmp_json)
+            except Exception:
+                pass
 
     # Record in samples.csv
     add_sample_record(fname + ".npz", class_idx, folder_name, metadata)
@@ -109,7 +169,6 @@ def save_sample(sequence_array, class_idx, folder_name, metadata=None):
     return npz_path
 
 def add_sample_record(filename, class_idx, folder_name, metadata):
-    rows = read_csv(SAMPLES_CSV)
     new_row = {
         "sample_id": uuid.uuid4().hex[:8],
         "class_idx": str(class_idx),
@@ -123,9 +182,8 @@ def add_sample_record(filename, class_idx, folder_name, metadata):
         "dialect": metadata.get("dialect", ""),
         "created_at": metadata.get("created_at", now_str()),
     }
-    rows.append(new_row)
     fieldnames = ["sample_id","class_idx","folder_name","file","user","session_id","frames","duration","source","dialect","created_at"]
-    write_csv(SAMPLES_CSV, rows, fieldnames)
+    append_csv_row(SAMPLES_CSV, new_row, fieldnames)
 
 # ---- Label merge ----
 def merge_labels(src_class_idx, dst_class_idx):

@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: signdb
+      POSTGRES_USER: signdb_user
+      POSTGRES_PASSWORD: signdb_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - miniodata:/data
+    ports:
+      - 9000:9000
+      - 9001:9001
+
+  backend:
+    build: .
+    env_file:
+      - ./.env.example
+    environment:
+      # override dataset root to persistent volume inside compose
+      DATASET_ROOT: /dataset
+      DATABASE_URL: postgresql://signdb_user:signdb_pass@postgres:5432/signdb
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: sign-dataset
+    volumes:
+      - dataset:/dataset
+    ports:
+      - 8000:8000
+    depends_on:
+      - postgres
+      - minio
+
+volumes:
+  pgdata:
+  miniodata:
+  dataset:

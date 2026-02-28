@@ -93,10 +93,17 @@ def validate_samples(base_dir: Path, expected_T: int = None, expected_D: int = N
                     cannot_fix.append({"file": str(fpath), "reason": "no_sequence_or_bad_dim"})
                     continue
                 T, D = seq.shape
-                # if feature dim differs, skip (cannot safely fix)
+                # Attempt to fix feature_dim mismatch for known safe cases (single-hand 63 <-> two-hand 126)
                 if D != target_D:
-                    cannot_fix.append({"file": str(fpath), "reason": f"feature_dim_mismatch ({D}!={target_D})"})
-                    continue
+                    if D == 63 and target_D == 126:
+                        seq = np.pad(seq, ((0, 0), (0, 63)), mode='constant')
+                        T, D = seq.shape
+                    elif D == 126 and target_D == 63:
+                        seq = seq[:, :63]
+                        T, D = seq.shape
+                    else:
+                        cannot_fix.append({"file": str(fpath), "reason": f"feature_dim_mismatch ({D}!={target_D})"})
+                        continue
                 if T < target_T:
                     pad = np.zeros((target_T - T, D), dtype=np.float32)
                     seq2 = np.vstack([seq, pad])

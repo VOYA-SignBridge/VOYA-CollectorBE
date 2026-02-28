@@ -7,6 +7,7 @@ Refactored augmentation functions
 import numpy as np
 import cv2
 import random
+from app.processing.augmentations import augment_n
 
 # -------- Stage A: Frame-level augment --------
 def flip_frames(frames):
@@ -61,5 +62,6 @@ def stage_b_keypoint_level(seq: np.ndarray):
 
 # -------- Wrapper --------
 def generate_augmented_sequences(sequence_array, config=None):
-    # combine Stage B augmentations
-    return list(stage_b_keypoint_level(sequence_array).values())
+    # unified augmentation path: return exactly N variants (default 8)
+    n = 8 if not config or 'n' not in (config or {}) else int(config['n'])
+    return augment_n(sequence_array, n=n)

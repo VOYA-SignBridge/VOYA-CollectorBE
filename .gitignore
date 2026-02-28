@@ -5,8 +5,17 @@ env/
 venv/
 .venv/
 .env
+.env.*
+.env.prod
 models/
 runs/
 backups/
 *.mp4
 *.npz
+
+# python cache
+__pycache__/
+*.pyc
+
+# local/debug artifacts
+tmp_predict.json

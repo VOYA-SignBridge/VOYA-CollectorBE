@@ -3,11 +3,12 @@ from pathlib import Path
 from ..processing.utils import load_npz_features, merge_memmap
 from ..processing import validator
 from fastapi import Query
+from app.config import settings
 
 router = APIRouter(prefix="/api/dataset", tags=["Dataset Exporter"])
 
-BASE_DATASET_DIR = Path("dataset/features")
-OUTPUT_DIR = Path("dataset/processed/memmap")
+BASE_DATASET_DIR = Path(settings.dataset_root) / "features"
+OUTPUT_DIR = Path(settings.dataset_root) / "processed" / "memmap"
 
 
 @router.post("/export")
@@ -15,7 +16,8 @@ def export_dataset(fix: bool = Query(False, description="Attempt to auto-fix mis
     """Aggregate all processed .npz files into unified memmap dataset"""
     try:
         # Validate samples first
-        report = validator.validate_samples(BASE_DATASET_DIR, expected_T=60, expected_D=226, fix=fix)
+        # Use hands-only feature dim (126)
+        report = validator.validate_samples(BASE_DATASET_DIR, expected_T=60, expected_D=126, fix=fix)
         if not report.get('ok'):
             # If not ok and not fixed, return the report so caller can inspect
             if report.get('fixed_count', 0) == 0:

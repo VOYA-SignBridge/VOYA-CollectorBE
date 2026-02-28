@@ -4,6 +4,10 @@ This repository contains the backend service and processing pipeline used to col
 
 This README covers development setup, Docker/docker-compose usage, running the worker, dataset export, dialect support, and deployment notes.
 
+## Quick links
+- End-user guide: [USER_GUIDE.md](USER_GUIDE.md)
+- Operator/admin guide: [OPERATOR_GUIDE.md](OPERATOR_GUIDE.md)
+
 ## Table of contents
 - Prerequisites
 - Local development (virtualenv)

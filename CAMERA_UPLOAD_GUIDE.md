@@ -2,6 +2,8 @@
 
 ## 🎯 Overview
 
+> Lưu ý (cập nhật): Pipeline hiện tại ưu tiên **hands-only 126-dim** (2 hands × 21 landmarks × xyz). Một số phần trong tài liệu cũ có nhắc **226-dim** là theo phiên bản tối ưu trước đây (pose+hands). Nếu bạn đang dùng training/inference PyTorch mới nhất, hãy coi **126** là chuẩn.
+
 Backend đã được cấu hình để hoàn toàn tương thích với React + TypeScript + MediaPipe frontend. Phần thu trực tiếp (camera upload) hoạt động với các tính năng:
 
 - ✅ **MediaPipe Hands Integration**: Xử lý hand landmarks only
@@ -55,12 +57,12 @@ Backend đã được cấu hình để hoàn toàn tương thích với React +
 
 | Test Case | Frames | Payload Size | Upload Time | Feature Dim | Status |
 |-----------|--------|--------------|-------------|-------------|---------|
-| Quick Test | 10 | ~14 KB | 0.03s | 226 | ✅ Pass |
-| Standard | 60 | ~90 KB | 0.04s | 226 | ✅ Pass |
-| Medium | 90 | ~339 KB | 0.05s | 226 | ✅ Pass |
-| Large | 120 | ~450 KB | 0.08s | 226 | ✅ Pass |
-| Very Short | 1 | ~4 KB | 0.02s | 226 | ✅ Pass |
-| Extended | 150 | ~565 KB | 0.1s | 226 | ✅ Pass |
+| Quick Test | 10 | ~14 KB | 0.03s | 126 (hands-only) | ✅ Pass |
+| Standard | 60 | ~90 KB | 0.04s | 126 (hands-only) | ✅ Pass |
+| Medium | 90 | ~339 KB | 0.05s | 126 (hands-only) | ✅ Pass |
+| Large | 120 | ~450 KB | 0.08s | 126 (hands-only) | ✅ Pass |
+| Very Short | 1 | ~4 KB | 0.02s | 126 (hands-only) | ✅ Pass |
+| Extended | 150 | ~565 KB | 0.1s | 126 (hands-only) | ✅ Pass |
 
 **Performance Improvement**: 
 - Payload size reduced by ~85% (từ 2.4MB → 339KB cho 90 frames)
@@ -149,11 +151,9 @@ dataset/
 ```
 
 ### NPZ Data Format
-- **Shape**: `(T, 226)` where T = number of frames
-- **Features per frame**: 226 values (optimized)
-  - Pose Upper Body: 25 × 4 = 100 (x, y, z, visibility)
-  - Hands: 21 × 3 × 2 = 126 (x, y, z for both hands) - ONLY
-  - Face: 0 (removed for performance)
+- **Shape**: `(T, 126)` where T = number of frames
+- **Features per frame**: 126 values
+  - Hands: 21 × 3 × 2 = 126 (x, y, z cho cả 2 tay)
 
 ## 🚀 Frontend Integration
 
