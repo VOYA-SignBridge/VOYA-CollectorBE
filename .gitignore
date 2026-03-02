@@ -8,7 +8,7 @@ venv/
 .env.*
 .env.prod
 !.env.example
-!backend/.env.example
+backend/.env.example
 models/
 runs/
 backups/
@@ -21,3 +21,4 @@ __pycache__/
 
 # local/debug artifacts
 tmp_predict.json
+
