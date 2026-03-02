@@ -37,5 +37,4 @@ node_modules/
 *.npy
 
 # Docker-related
-Dockerfile
 docker-compose.override.yml
