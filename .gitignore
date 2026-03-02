@@ -7,6 +7,8 @@ venv/
 .env
 .env.*
 .env.prod
+!.env.example
+!backend/.env.example
 models/
 runs/
 backups/
